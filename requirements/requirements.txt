@@ -11,4 +11,5 @@ torchvision==0.2.1
 easydict==1.7
 numpy==1.14.3
 plyfile==0.6
+cython
 glumpy==1.0.6

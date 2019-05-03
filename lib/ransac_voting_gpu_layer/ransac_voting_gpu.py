@@ -982,11 +982,11 @@ def ransac_motion_voting(mask, vertex):
 
 
 if __name__=="__main__":
-    from lib.datasets.linemod_dataset import LineModDatasetRealAug,VotingType
-    from lib.utils.data_utils import LineModImageDB
+    from lib.datasets.linemod_dataset import HomemadeDataset,VotingType
+    from lib.utils.data_utils import HomemadeImageDB
     from lib.utils.draw_utils import imagenet_to_uint8
     import numpy as np
-    train_set = LineModDatasetRealAug(LineModImageDB('cat',has_fuse_set=False,has_ms_set=False).real_set)
+    train_set = HomemadeDataset(HomemadeImageDB('intake',has_fuse_set=False,has_ms_set=False).real_set)
     rgb, mask, vertex, vertex_weight, pose, gt_corners = train_set[np.random.randint(0,len(train_set)),480,640]
 
     h,w=mask.shape
@@ -1013,7 +1013,7 @@ if __name__=="__main__":
     plt.show()
 
     # vote for vanishing point
-    # train_set = LineModDatasetRealAug(LineModImageDB('cat',has_fuse_set=False,has_ms_set=False).real_set,vote_type=VotingType.VanPts)
+    # train_set = HomemadeDatasetRealAug(HomemadeImageDB('cat',has_fuse_set=False,has_ms_set=False).real_set,vote_type=VotingType.VanPts)
     #
     # for k in np.random.choice(np.arange(len(train_set)),100):
     #     rgb, mask, vertex, vertex_weight, pose, van_pts = train_set[np.random.randint(k, len(train_set)), 480, 640]

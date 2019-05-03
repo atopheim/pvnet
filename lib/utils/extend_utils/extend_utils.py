@@ -236,23 +236,23 @@ def render_mesh_rgb(RT,K,vert,colors,face,h,w,init):
 if __name__=="__main__":
     import sys
     sys.path.append('.')
-    from lib.utils.data_utils import LineModImageDB,LineModModelDB,Projector
-    from lib.datasets.linemod_dataset import LineModDatasetRealAug,ImageSizeBatchSampler,VotingType
+    from lib.utils.data_utils import HomemadeImageDB,HomemadeModelDB,Projector
+    from lib.datasets.homemade_dataset import HomemadeDataset,ImageSizeBatchSampler,VotingType #,LineModDatasetRealAug
     from lib.ransac_voting_gpu_layer.ransac_voting_gpu import ransac_voting_layer
     from torch.utils.data import RandomSampler,DataLoader
     from lib.utils.draw_utils import pts_to_img_pts
     from lib.utils.evaluation_utils import pnp
     import random
 
-    image_db = LineModImageDB('duck', has_ro_set=False, has_ra_set=False, has_plane_set=False, has_render_set=False,
+    image_db = HomemadeImageDB('intake', has_ro_set=False, has_ra_set=False, has_plane_set=False, has_render_set=False,
                               has_ms_set=False,has_fuse_set=False)
     random.shuffle(image_db.real_set)
-    dataset = LineModDatasetRealAug(image_db.real_set[:5], data_prefix=image_db.linemod_dir,
+    dataset = HomemadeDataset(image_db.real_set[:5], data_prefix=image_db.linemod_dir,
                                     vote_type=VotingType.Extreme, augment=False)
     sampler = RandomSampler(dataset)
     batch_sampler = ImageSizeBatchSampler(sampler, 5, False)
     loader = DataLoader(dataset, batch_sampler=batch_sampler, num_workers=8)
-    modeldb=LineModModelDB()
+    modeldb=HomemadeModelDB()
     camera_matrix=Projector().intrinsic_matrix['linemod'].astype(np.float32)
     for i, data in enumerate(loader):
         rgb, mask, vertex, vertex_weight, pose, gt_corners = data
