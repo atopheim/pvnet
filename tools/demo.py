@@ -22,8 +22,13 @@ from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 
+#with open(args.cfg_file, 'r') as f:
+#    train_cfg = json.load(f)
+#train_cfg['model_name'] = '{}_{}'.format(args.linemod_cls, train_cfg['model_name'])
+
 with open(args.cfg_file, 'r') as f:
     train_cfg = json.load(f)
+    print(args)
 train_cfg['model_name'] = '{}_{}'.format(args.linemod_cls, train_cfg['model_name'])
 
 vote_num = 9

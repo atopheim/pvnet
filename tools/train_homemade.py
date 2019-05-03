@@ -2,20 +2,19 @@ import sys
 
 from skimage.io import imsave
 
-
 sys.path.append('.')
 sys.path.append('..')
 from lib.ransac_voting_gpu_layer.ransac_voting_gpu import ransac_voting_layer_v3, \
     estimate_voting_distribution_with_mean, ransac_voting_layer_v5, ransac_motion_voting
 from lib.networks.model_repository import *
-from lib.datasets.linemod_dataset import LineModDatasetRealAug, ImageSizeBatchSampler, VotingType
-from lib.utils.data_utils import LineModImageDB, OcclusionLineModImageDB, TruncatedLineModImageDB
+from lib.datasets.homemade_dataset import HomemadeDataset, ImageSizeBatchSampler, VotingType
+from lib.utils.data_utils_homemade import HomemadeImageDB, OcclusionHomemadeImageDB, TruncatedHomemadeImageDB
 from lib.utils.arg_utils import args
 from lib.utils.draw_utils import visualize_bounding_box, imagenet_to_uint8, visualize_mask, visualize_points, img_pts_to_pts_img
 from lib.utils.base_utils import save_pickle
 import json
 #from lib.debug.systeminfo import aboutCudaDevices
-from lib.utils.evaluation_utils import Evaluator
+from lib.utils.evaluation_utils_homemade import Evaluator
 from lib.utils.net_utils import AverageMeter, Recorder, smooth_l1_loss, \
     load_model, save_model, adjust_learning_rate, compute_precision_recall, set_learning_rate
 from lib.utils.config import cfg
@@ -31,11 +30,10 @@ from collections import OrderedDict
 import random
 import numpy as np
 
-
-
 with open(args.cfg_file,'r') as f:
+    print("args.cfg_file: ",args.cfg_file)
     train_cfg=json.load(f)
-train_cfg['model_name']='{}_{}'.format(args.linemod_cls,train_cfg['model_name'])
+train_cfg['model_name']='{}_{}'.format(args.homemade_cls,train_cfg['model_name'])
 
 if train_cfg['vote_type']=='BB8C':
     vote_type=VotingType.BB8C
@@ -144,6 +142,8 @@ def train(net, optimizer, dataloader, epoch):
     end=time.time()
     for idx, data in enumerate(dataloader):
         image, mask, vertex, vertex_weights, pose, _ = [d.cuda() for d in data]
+        print(idx)
+        print("image: ",type(image))
         data_time.update(time.time()-end)
 
         seg_pred, vertex_pred, loss_seg, loss_vertex, precision, recall = net(image, mask, vertex, vertex_weights)
@@ -211,13 +211,13 @@ def val(net, dataloader, epoch, val_prefix='val', use_camera_intrinsic=False, us
                 b=pose.shape[0]
                 pose_preds=[]
                 for bi in range(b):
-                    intri_type='use_intrinsic' if use_camera_intrinsic else 'linemod'
+                    intri_type='use_intrinsic' if use_camera_intrinsic else 'homemade'
                     K=Ks[bi].cpu().numpy() if use_camera_intrinsic else None
                     if args.use_uncertainty_pnp:
-                        pose_preds.append(evaluator.evaluate_uncertainty(mean[bi],cov_inv[bi],pose[bi],args.linemod_cls,
+                        pose_preds.append(evaluator.evaluate_uncertainty(mean[bi],cov_inv[bi],pose[bi],args.homemade_cls,
                                                                          intri_type,vote_type,intri_matrix=K))
                     else:
-                        pose_preds.append(evaluator.evaluate(corner_pred[bi],pose[bi],args.linemod_cls,intri_type,
+                        pose_preds.append(evaluator.evaluate(corner_pred[bi],pose[bi],args.homemade_cls,intri_type,
                                                              vote_type,intri_matrix=K))
 
 
@@ -269,48 +269,47 @@ def train_net():
         begin_epoch=load_model(net.module.net, optimizer, model_dir, args.load_epoch)
 
         if args.normal:
-            print('testing normal linemod ...')
-            image_db = LineModImageDB(args.linemod_cls,has_render_set=False,
+            print('testing normal database ...')
+            image_db = HomemadeImageDB(args.homemade_cls,has_render_set=False,
                                       has_fuse_set=False)
             test_db = image_db.test_real_set+image_db.val_real_set
-            test_set = LineModDatasetRealAug(test_db, cfg.LINEMOD, vote_type, augment=False, use_motion=motion_model)
+            test_set = HomemadeDataset(test_db, cfg.HOMEMADE, vote_type, augment=False, use_motion=motion_model)
             test_sampler = SequentialSampler(test_set)
             test_batch_sampler = ImageSizeBatchSampler(test_sampler, train_cfg['test_batch_size'], False)
             test_loader = DataLoader(test_set, batch_sampler=test_batch_sampler, num_workers=0)
             prefix='test' if args.use_test_set else 'val'
             val(net, test_loader, begin_epoch, prefix, use_motion=motion_model)
 
-        if args.occluded and args.linemod_cls in cfg.occ_linemod_cls_names:
-            print('testing occluded linemod ...')
-            occ_image_db = OcclusionLineModImageDB(args.linemod_cls)
-            occ_test_db = occ_image_db.test_real_set
-            occ_test_set = LineModDatasetRealAug(occ_test_db, cfg.OCCLUSION_LINEMOD, vote_type,
-                                                 augment=False, use_motion=motion_model)
-            occ_test_sampler = SequentialSampler(occ_test_set)
-            occ_test_batch_sampler = ImageSizeBatchSampler(occ_test_sampler, train_cfg['test_batch_size'], False)
-            occ_test_loader = DataLoader(occ_test_set, batch_sampler=occ_test_batch_sampler, num_workers=0)
-            prefix='occ_test' if args.use_test_set else 'occ_val'
-            val(net, occ_test_loader, begin_epoch, prefix, use_motion=motion_model)
+        if args.occluded and args.homemade_cls in cfg.occ_homemade_cls_names:
+           print('testing occluded dataset ...')
+           occ_image_db = OcclusionHomemadeImageDB(args.homemade_cls)
+           occ_test_db = occ_image_db.test_real_set
+           occ_test_set = HomemadeDataset(occ_test_db, cfg.OCCLUSION_HOMEMADE, vote_type,
+                                                augment=False, use_motion=motion_model)
+           occ_test_sampler = SequentialSampler(occ_test_set)
+           occ_test_batch_sampler = ImageSizeBatchSampler(occ_test_sampler, train_cfg['test_batch_size'], False)
+           occ_test_loader = DataLoader(occ_test_set, batch_sampler=occ_test_batch_sampler, num_workers=0)
+           prefix='occ_test' if args.use_test_set else 'occ_val'
+           val(net, occ_test_loader, begin_epoch, prefix, use_motion=motion_model)
 
         if args.truncated:
-            print('testing truncated linemod ...')
-            trun_image_db = TruncatedLineModImageDB(args.linemod_cls)
-            print(len(trun_image_db.set))
-            trun_image_set = LineModDatasetRealAug(trun_image_db.set, cfg.LINEMOD, vote_type, augment=False,
-                                                   use_intrinsic=True, use_motion=motion_model)
-            trun_test_sampler = SequentialSampler(trun_image_set)
-            trun_test_batch_sampler = ImageSizeBatchSampler(trun_test_sampler, train_cfg['test_batch_size'], False)
-            trun_test_loader = DataLoader(trun_image_set, batch_sampler=trun_test_batch_sampler, num_workers=0)
-            prefix='trun_test'
-            val(net, trun_test_loader, begin_epoch, prefix, True, use_motion=motion_model)
+           print('testing truncated dataset ...')
+           trun_image_db = TruncatedHomemadeImageDB(args.homemade_cls)
+           print(len(trun_image_db.set))
+           trun_image_set = HomemadeDataset(trun_image_db.set, cfg.HOMEMADE, vote_type, augment=False,
+                                                  use_intrinsic=True, use_motion=motion_model)
+           trun_test_sampler = SequentialSampler(trun_image_set)
+           trun_test_batch_sampler = ImageSizeBatchSampler(trun_test_sampler, train_cfg['test_batch_size'], False)
+           trun_test_loader = DataLoader(trun_image_set, batch_sampler=trun_test_batch_sampler, num_workers=0)
+           prefix='trun_test'
+           val(net, trun_test_loader, begin_epoch, prefix, True, use_motion=motion_model)
 
     else:
         begin_epoch=0
         if train_cfg['resume']:
             begin_epoch=load_model(net.module.net, optimizer, model_dir)
 
-
-        image_db = LineModImageDB(args.linemod_cls,
+        image_db = HomemadeImageDB(args.homemade_cls,
                                   has_fuse_set=train_cfg['use_fuse'],
                                   has_render_set=True)
 
@@ -321,34 +320,34 @@ def train_net():
         if train_cfg['use_fuse']:
             train_db+=image_db.fuse_set
 
-        train_set = LineModDatasetRealAug(train_db, cfg.LINEMOD, vote_type, augment=True, cfg=train_cfg['aug_cfg'], use_motion=motion_model)
+        train_set = HomemadeDataset(train_db, cfg.HOMEMADE, vote_type, augment=True, cfg=train_cfg['homemade_cfg'], use_motion=motion_model)
         train_sampler = RandomSampler(train_set)
-        train_batch_sampler = ImageSizeBatchSampler(train_sampler, train_cfg['train_batch_size'], False, cfg=train_cfg['aug_cfg'])
+        train_batch_sampler = ImageSizeBatchSampler(train_sampler, train_cfg['train_batch_size'], False, cfg=train_cfg['homemade_cfg'])
         train_loader = DataLoader(train_set, batch_sampler=train_batch_sampler, num_workers=12)
 
         val_db=image_db.val_real_set
-        val_set = LineModDatasetRealAug(val_db, cfg.LINEMOD, vote_type, augment=False, cfg=train_cfg['aug_cfg'], use_motion=motion_model)
+        val_set = HomemadeDataset(val_db, cfg.HOMEMADE, vote_type, augment=False, cfg=train_cfg['homemade_cfg'], use_motion=motion_model)
         val_sampler = SequentialSampler(val_set)
-        val_batch_sampler = ImageSizeBatchSampler(val_sampler, train_cfg['test_batch_size'], False, cfg=train_cfg['aug_cfg'])
+        val_batch_sampler = ImageSizeBatchSampler(val_sampler, train_cfg['test_batch_size'], False, cfg=train_cfg['homemade_cfg'])
         val_loader = DataLoader(val_set, batch_sampler=val_batch_sampler, num_workers=12)
 
-        if args.linemod_cls in cfg.occ_linemod_cls_names:
-            occ_image_db=OcclusionLineModImageDB(args.linemod_cls)
-            occ_val_db=occ_image_db.test_real_set[:len(occ_image_db.test_real_set)//2]
-            occ_val_set = LineModDatasetRealAug(occ_val_db, cfg.OCCLUSION_LINEMOD, vote_type, augment=False, cfg=train_cfg['aug_cfg'], use_motion=motion_model)
-            occ_val_sampler = SequentialSampler(occ_val_set)
-            occ_val_batch_sampler = ImageSizeBatchSampler(occ_val_sampler, train_cfg['test_batch_size'], False, cfg=train_cfg['aug_cfg'])
-            occ_val_loader = DataLoader(occ_val_set, batch_sampler=occ_val_batch_sampler, num_workers=12)
+        if args.homemade_cls in cfg.occ_homemade_cls_names:
+           occ_image_db=OcclusionHomemadeImageDB(args.homemade_cls)
+           occ_val_db=occ_image_db.test_real_set[:len(occ_image_db.test_real_set)//2]
+           occ_val_set = HomemadeDataset(occ_val_db, cfg.OCCLUSION_LINEMOD, vote_type, augment=False, cfg=train_cfg['homemade_cfg'], use_motion=motion_model)
+           occ_val_sampler = SequentialSampler(occ_val_set)
+           occ_val_batch_sampler = ImageSizeBatchSampler(occ_val_sampler, train_cfg['test_batch_size'], False, cfg=train_cfg['homemade_cfg'])
+           occ_val_loader = DataLoader(occ_val_set, batch_sampler=occ_val_batch_sampler, num_workers=12)
 
         for epoch in range(begin_epoch, train_cfg['epoch_num']):
-            torch.cuda.empty_cache()
+            
             adjust_learning_rate(optimizer,epoch,train_cfg['lr_decay_rate'],train_cfg['lr_decay_epoch'])
             train(net, optimizer, train_loader, epoch)
             val(net, val_loader, epoch,use_motion=motion_model)
-            if args.linemod_cls in cfg.occ_linemod_cls_names:
+            if args.homemade_cls in cfg.occ_homemade_cls_names:
                 val(net, occ_val_loader, epoch, 'occ_val',use_motion=motion_model)
             save_model(net.module.net, optimizer, epoch, model_dir)
-            torch.cuda.empty_cache()
+            
 
 # def save_dataset(dataset,prefix=''):
 #     with open('assets/{}{}.txt'.format(prefix,args.linemod_cls),'w') as f:

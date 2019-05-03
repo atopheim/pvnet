@@ -11,5 +11,6 @@ setup(
     ],
     cmdclass={
         'build_ext': BuildExtension
-    }
+    },
+    extra_compile_args={'nvcc': ['-l', 'cusparse']}
 )

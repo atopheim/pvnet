@@ -8,8 +8,10 @@ parser.add_argument('--rec_name', default='resnet', type=str)
 parser.add_argument('--net', action='store', dest='net', type=str)
 parser.add_argument('--type', action='store', dest='type', type=str)
 
-parser.add_argument('--cfg_file', type=str, default='configs/linemod_train.json')
+#parser.add_argument('--cfg_file', type=str, default='configs/linemod_train.json')
+parser.add_argument('--cfg_file', type=str, default='configs/homemade_train.json')
 parser.add_argument('--linemod_cls', type=str, default='cat')
+parser.add_argument('--homemade_cls', type=str, default='intake')
 
 parser.add_argument('--use_gt_mask', action='store_true', dest='use_gt_mask', default=False)
 parser.add_argument('--test_model', action='store_true', dest='test_model', default=False)

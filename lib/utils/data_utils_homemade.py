@@ -34,9 +34,9 @@ def read_mask_np(mask_path):
     return mask_seg
 
 
-class LineModModelDB(object):
+class HomemadeModelDB(object):
     '''
-    LineModModelDB is used for managing the mesh of each model
+    HomemadeModelDB is used for managing the mesh of each model
     '''
     corners_3d = {}
     models = {}
@@ -46,15 +46,15 @@ class LineModModelDB(object):
     small_bbox_corners={}
 
     def __init__(self):
-        self.ply_pattern = os.path.join(cfg.LINEMOD, '{}/{}.ply')
-        self.diameter_pattern = os.path.join(cfg.LINEMOD_ORIG,'{}/distance.txt')
-        self.farthest_pattern = os.path.join(cfg.LINEMOD,'{}/farthest{}.txt')
+        self.ply_pattern = os.path.join(cfg.HOMEMADE, '{}/{}.ply')
+        self.diameter_pattern = os.path.join(cfg.HOMEMADE,'{}/distance.txt')
+        self.farthest_pattern = os.path.join(cfg.HOMEMADE,'{}/farthest{}.txt')
 
     def get_corners_3d(self, class_type):
         if class_type in self.corners_3d:
             return self.corners_3d[class_type]
 
-        corner_pth=os.path.join(cfg.LINEMOD, class_type, 'corners.txt')
+        corner_pth=os.path.join(cfg.HOMEMADE, class_type, 'corners.txt')
         if os.path.exists(corner_pth):
             self.corners_3d[class_type]=np.loadtxt(corner_pth)
             return self.corners_3d[class_type]
@@ -139,17 +139,17 @@ class LineModModelDB(object):
 
     @staticmethod
     def compute_farthest_surface_point_3d():
-        for cls in cfg.linemod_cls_names:
-            pts=np.loadtxt(os.path.join(cfg.LINEMOD, cls,'dense_pts.txt'))[:,:3]
+        for cls in cfg.homemade_cls_names:
+            pts=np.loadtxt(os.path.join(cfg.HOMEMADE, cls,'dense_pts.txt'))[:,:3]
             spts=farthest_point_sampling(pts,8,True)
-            write_points(os.path.join(cfg.LINEMOD, cls, 'farthest.txt'.format(cls)),spts)
+            write_points(os.path.join(cfg.HOMEMADE, cls, 'farthest.txt'.format(cls)),spts)
 
     @staticmethod
     def compute_farthest_surface_point_3d_num(num):
-        for cls in cfg.linemod_cls_names:
-            pts=np.loadtxt(os.path.join(cfg.LINEMOD, cls,'dense_pts.txt'))[:,:3]
+        for cls in cfg.homemade_cls_names:
+            pts=np.loadtxt(os.path.join(cfg.HOMEMADE, cls,'dense_pts.txt'))[:,:3]
             spts=farthest_point_sampling(pts,num,True)
-            write_points(os.path.join(cfg.LINEMOD, cls, 'farthest{}.txt'.format(num)),spts)
+            write_points(os.path.join(cfg.HOMEMADE, cls, 'farthest{}.txt'.format(num)),spts)
 
     def get_ply_mesh(self,class_type):
         ply = PlyData.read(self.ply_pattern.format(class_type, class_type))
@@ -159,22 +159,23 @@ class LineModModelDB(object):
 
         return vert, vert_id
 
-class LineModImageDB(object):
+class HomemadeImageDB(object):
     '''
-    rgb_pth relative path to cfg.LINEMOD
-    dpt_pth relative path to cfg.LINEMOD
+
+    rgb_pth relative path to cfg.homemade
+    dpt_pth relative path to cfg.HOMEMADE
     RT np.float32 [3,4]
     cls_typ 'cat' ...
     rnd_typ 'real' or 'render'
     corner  np.float32 [8,2]
     '''
-    def __init__(self, cls_name, render_num=10000, fuse_num=10000, ms_num=10000,
+    def __init__(self, cls_name, render_num=1000, fuse_num=1000, ms_num=1000,
                  has_render_set=True, has_fuse_set=True):
         self.cls_name=cls_name
 
         # some dirs for processing
-        os.path.join(cfg.LINEMOD,'posedb','{}_render.pkl'.format(cls_name))
-        self.linemod_dir=cfg.LINEMOD
+        os.path.join(cfg.HOMEMADE,'posedb','{}_render.pkl'.format(cls_name))
+        self.homemade_dir=cfg.HOMEMADE
         self.render_dir='renders/{}'.format(cls_name)
         self.rgb_dir='{}/JPEGImages'.format(cls_name)
         self.mask_dir='{}/mask'.format(cls_name)
@@ -186,7 +187,7 @@ class LineModImageDB(object):
         self.val_fn='{}/val.txt'.format(cls_name)
 
         if has_render_set:
-            self.render_pkl=os.path.join(self.linemod_dir,'posedb','{}_render.pkl'.format(cls_name))
+            self.render_pkl=os.path.join(self.homemade_dir,'posedb','{}_render.pkl'.format(cls_name))
             # prepare dataset
             if os.path.exists(self.render_pkl):
                 # read cached
@@ -197,7 +198,7 @@ class LineModImageDB(object):
         else:
             self.render_set=[]
 
-        self.real_pkl=os.path.join(self.linemod_dir,'posedb','{}_real.pkl'.format(cls_name))
+        self.real_pkl=os.path.join(self.homemade_dir,'posedb','{}_real.pkl'.format(cls_name))
         if os.path.exists(self.real_pkl):
             # read cached
             self.real_set=read_pickle(self.real_pkl)
@@ -214,10 +215,10 @@ class LineModImageDB(object):
         self.fuse_set=[]
         self.fuse_dir='fuse'
         self.fuse_num=fuse_num
-        self.cls_idx=cfg.linemod_cls_names.index(cls_name)
+        self.cls_idx=cfg.homemade_cls_names.index(cls_name)
 
         if has_fuse_set:
-            self.fuse_pkl=os.path.join(cfg.LINEMOD,'posedb','{}_fuse.pkl'.format(cls_name))
+            self.fuse_pkl=os.path.join(cfg.HOMEMADE,'posedb','{}_fuse.pkl'.format(cls_name))
             # prepare dataset
             if os.path.exists(self.fuse_pkl):
                 # read cached
@@ -231,12 +232,12 @@ class LineModImageDB(object):
     def collect_render_set_info(self,pkl_file,render_dir,format='jpg'):
         database=[]
         projector=Projector()
-        modeldb=LineModModelDB()
+        modeldb=HomemadeModelDB()
         for k in range(self.render_num):
             data={}
             data['rgb_pth']=os.path.join(render_dir,'{}.{}'.format(k,format))
             data['dpt_pth']=os.path.join(render_dir,'{}_depth.png'.format(k))
-            data['RT']=read_pickle(os.path.join(self.linemod_dir,render_dir,'{}_RT.pkl'.format(k)))['RT']
+            data['RT']=read_pickle(os.path.join(self.homemade_dir,render_dir,'{}_RT.pkl'.format(k)))['RT']
             data['cls_typ']=self.cls_name
             data['rnd_typ']='render'
             data['corners']=projector.project(modeldb.get_corners_3d(self.cls_name),data['RT'],'blender')
@@ -255,8 +256,8 @@ class LineModImageDB(object):
     def collect_real_set_info(self):
         database=[]
         projector=Projector()
-        modeldb=LineModModelDB()
-        img_num=len(os.listdir(os.path.join(self.linemod_dir,self.rgb_dir)))
+        modeldb=HomemadeModelDB()
+        img_num=len(os.listdir(os.path.join(self.homemade_dir,self.rgb_dir)))
         for k in range(img_num):
             data={}
             data['rgb_pth']=os.path.join(self.rgb_dir, '{:06}.jpg'.format(k))
@@ -267,27 +268,27 @@ class LineModImageDB(object):
             data['RT'] = pose_transformer.orig_pose_to_blender_pose(pose).astype(np.float32)
             data['cls_typ']=self.cls_name
             data['rnd_typ']='real'
-            data['corners']=projector.project(modeldb.get_corners_3d(self.cls_name),data['RT'],'linemod')
-            data['farthest']=projector.project(modeldb.get_farthest_3d(self.cls_name),data['RT'],'linemod')
+            data['corners']=projector.project(modeldb.get_corners_3d(self.cls_name),data['RT'],'homemade')
+            data['farthest']=projector.project(modeldb.get_farthest_3d(self.cls_name),data['RT'],'homemade')
             for num in [4,12,16,20]:
-                data['farthest{}'.format(num)]=projector.project(modeldb.get_farthest_3d(self.cls_name,num),data['RT'],'linemod')
-            data['center']=projector.project(modeldb.get_centers_3d(self.cls_name)[None, :],data['RT'],'linemod')
-            data['small_bbox'] = projector.project(modeldb.get_small_bbox(self.cls_name), data['RT'], 'linemod')
+                data['farthest{}'.format(num)]=projector.project(modeldb.get_farthest_3d(self.cls_name,num),data['RT'],'homemade')
+            data['center']=projector.project(modeldb.get_centers_3d(self.cls_name)[None, :],data['RT'],'homemade')
+            data['small_bbox'] = projector.project(modeldb.get_small_bbox(self.cls_name), data['RT'], 'homemade')
             axis_direct=np.concatenate([np.identity(3), np.zeros([3, 1])], 1).astype(np.float32)
-            data['van_pts']=projector.project_h(axis_direct, data['RT'], 'linemod')
+            data['van_pts']=projector.project_h(axis_direct, data['RT'], 'homemade')
             database.append(data)
 
         save_pickle(database,self.real_pkl)
         return database
 
     def collect_train_val_test_info(self):
-        with open(os.path.join(self.linemod_dir,self.test_fn),'r') as f:
+        with open(os.path.join(self.homemade_dir,self.test_fn),'r') as f:
             test_fns=[line.strip().split('/')[-1] for line in f.readlines()]
 
-        with open(os.path.join(self.linemod_dir,self.train_fn),'r') as f:
+        with open(os.path.join(self.homemade_dir,self.train_fn),'r') as f:
             train_fns=[line.strip().split('/')[-1] for line in f.readlines()]
 
-        with open(os.path.join(self.linemod_dir,self.val_fn),'r') as f:
+        with open(os.path.join(self.homemade_dir,self.val_fn),'r') as f:
             val_fns=[line.strip().split('/')[-1] for line in f.readlines()]
 
         for data in self.real_set:
@@ -302,7 +303,7 @@ class LineModImageDB(object):
 
     def collect_fuse_info(self):
         database=[]
-        modeldb=LineModModelDB()
+        modeldb=HomemadeModelDB()
         projector=Projector()
         for k in range(self.fuse_num):
             data=dict()
@@ -310,14 +311,14 @@ class LineModImageDB(object):
             data['dpt_pth']=os.path.join(self.fuse_dir, '{}_mask.png'.format(k))
 
             # if too few foreground pts then continue
-            mask=imread(os.path.join(self.linemod_dir,data['dpt_pth']))
-            if np.sum(mask==(cfg.linemod_cls_names.index(self.cls_name)+1))<400: continue
+            mask=imread(os.path.join(self.homemade_dir,data['dpt_pth']))
+            if np.sum(mask==(cfg.homemade_cls_names.index(self.cls_name)+1))<400: continue
 
             data['cls_typ']=self.cls_name
             data['rnd_typ']='fuse'
-            begins,poses=read_pickle(os.path.join(self.linemod_dir,self.fuse_dir,'{}_info.pkl'.format(k)))
+            begins,poses=read_pickle(os.path.join(self.homemade_dir,self.fuse_dir,'{}_info.pkl'.format(k)))
             data['RT'] = poses[self.cls_idx]
-            K=projector.intrinsic_matrix['linemod'].copy()
+            K=projector.intrinsic_matrix['homemade'].copy()
             K[0,2]+=begins[self.cls_idx,1]
             K[1,2]+=begins[self.cls_idx,0]
             data['K']=K
@@ -335,17 +336,17 @@ class LineModImageDB(object):
     def collect_ms_info(self):
         database=[]
         projector=Projector()
-        model_db=LineModModelDB()
+        model_db=HomemadeModelDB()
         for k in range(self.ms_num):
             data=dict()
             data['rgb_pth']=os.path.join(self.ms_dir, '{}.jpg'.format(k))
             data['dpt_pth']=os.path.join(self.ms_dir, '{}_{}_mask.png'.format(k,self.cls_name))
 
             # if too few foreground pts then continue
-            mask=imread(os.path.join(self.linemod_dir,data['dpt_pth']))
+            mask=imread(os.path.join(self.homemade_dir,data['dpt_pth']))
             if np.sum(mask)<5: continue
 
-            data['RT'] = read_pickle(os.path.join(self.linemod_dir, self.ms_dir, '{}_{}_RT.pkl'.format(self.cls_name,k)))['RT']
+            data['RT'] = read_pickle(os.path.join(self.homemade_dir, self.ms_dir, '{}_{}_RT.pkl'.format(self.cls_name,k)))['RT']
             data['cls_typ']=self.cls_name
             data['rnd_typ']='render_multi'
             data['corners']=projector.project(model_db.get_corners_3d(self.cls_name),data['RT'],'blender')
@@ -364,7 +365,7 @@ class LineModImageDB(object):
     def collect_printer_info(self):
         pdb=PrinterModelDB(self.cls_name)
         database=[]
-        modeldb=LineModModelDB()
+        modeldb=HomemadeModelDB()
         for k in range(pdb.image_num):
             data={}
             data['rgb_pth']=pdb.image_pattern.format(k+1)
@@ -385,10 +386,10 @@ class LineModImageDB(object):
 
     @staticmethod
     def split_val_set():
-        image_dbs=[LineModImageDB(cls,has_ms_set=False,has_fuse_set=False) for cls in cfg.linemod_cls_names]
+        image_dbs=[HomemadeImageDB(cls,has_ms_set=False,has_fuse_set=False) for cls in cfg.homemade_cls_names]
         for db in image_dbs:
             random.shuffle(db.test_real_set)
-            with open(os.path.join(db.linemod_dir,db.cls_name,'val.txt'),'w') as f:
+            with open(os.path.join(db.homemade_dir,db.cls_name,'val.txt'),'w') as f:
                 for k in range(len(db.test_real_set)//2):
                     f.write('LINEMOD/'+db.test_real_set[k]['rgb_pth']+'\n')
 
@@ -473,47 +474,47 @@ class LineModImageDB(object):
 
     @staticmethod
     def make_truncated_linemod_dataset():
-        for cls_name in cfg.linemod_cls_names:
+        for cls_name in cfg.homemade_cls_names:
             print(cls_name)
-            linemod_dir=cfg.LINEMOD
+            homemade_dir=cfg.HOMEMADE
             rgb_dir='{}/JPEGImages'.format(cls_name)
             mask_dir='{}/mask'.format(cls_name)
             rt_dir=os.path.join(cfg.DATA_DIR,'LINEMOD_ORIG',cls_name,'data')
 
-            if not os.path.exists(os.path.join(linemod_dir,'truncated',cls_name)):
-                os.mkdir(os.path.join(linemod_dir,'truncated',cls_name))
+            if not os.path.exists(os.path.join(homemade_dir,'truncated',cls_name)):
+                os.mkdir(os.path.join(homemade_dir,'truncated',cls_name))
 
             projector=Projector()
-            img_num=len(os.listdir(os.path.join(linemod_dir,rgb_dir)))
+            img_num=len(os.listdir(os.path.join(homemade_dir,rgb_dir)))
             print(img_num)
             for k in range(img_num):
-                rgb=imread(os.path.join(linemod_dir, rgb_dir, '{:06}.jpg'.format(k)))
-                msk=imread(os.path.join(linemod_dir, mask_dir, '{:04}.png'.format(k)))
+                rgb=imread(os.path.join(homemade_dir, rgb_dir, '{:06}.jpg'.format(k)))
+                msk=imread(os.path.join(homemade_dir, mask_dir, '{:04}.png'.format(k)))
                 msk=(np.sum(msk,2)>0).astype(np.uint8)
 
                 before=np.sum(msk)
                 count=0
                 while True:
-                    rgb_new,msk_new,hbeg,wbeg=LineModImageDB.crop_instance(rgb,msk,256)
+                    rgb_new,msk_new,hbeg,wbeg=HomemadeImageDB.crop_instance(rgb,msk,256)
                     after=np.sum(msk_new)
                     count+=1
                     if after/before>=0.2 or count>50:
                         rgb,msk=rgb_new, msk_new
                         break
 
-                imsave(os.path.join(linemod_dir,'truncated',cls_name,'{:06}_rgb.jpg'.format(k)),rgb)
-                imsave(os.path.join(linemod_dir,'truncated',cls_name,'{:04}_msk.png'.format(k)),msk)
+                imsave(os.path.join(homemade_dir,'truncated',cls_name,'{:06}_rgb.jpg'.format(k)),rgb)
+                imsave(os.path.join(homemade_dir,'truncated',cls_name,'{:04}_msk.png'.format(k)),msk)
 
                 pose=read_pose(os.path.join(rt_dir, 'rot{}.rot'.format(k)),
                                os.path.join(rt_dir, 'tra{}.tra'.format(k)))
                 pose_transformer = PoseTransformer(class_type=cls_name)
                 pose = pose_transformer.orig_pose_to_blender_pose(pose).astype(np.float32)
 
-                K=projector.intrinsic_matrix['linemod'].copy()
+                K=projector.intrinsic_matrix['homemade'].copy()
                 K[0,2]+=wbeg
                 K[1,2]+=hbeg
 
-                save_pickle([pose,K],os.path.join(linemod_dir,'truncated',cls_name,'{:06}_info.pkl'.format(k)))
+                save_pickle([pose,K],os.path.join(homemade_dir,'truncated',cls_name,'{:06}_info.pkl'.format(k)))
                 if k%500==0: print(k)
 
 class SpecialDuckDataset(object):
@@ -524,28 +525,28 @@ class SpecialDuckDataset(object):
     def get_dataset(num=10):
         dataset=[]
         projector=Projector()
-        modeldb=LineModModelDB()
+        modeldb=HomemadeModelDB()
         for k in range(num):
             data={}
             data['rgb_pth']='special/duck/{}.jpg'.format(k)
             data['dpt_pth']='special/duck/{}_depth.png'.format(k)
-            data['RT']=read_pickle(os.path.join(cfg.LINEMOD,'special/duck/{}_RT.pkl'.format(k)))['RT']
+            data['RT']=read_pickle(os.path.join(cfg.HOMEMADE,'special/duck/{}_RT.pkl'.format(k)))['RT']
             data['center']=projector.project(modeldb.get_centers_3d('duck'),data['RT'],'blender')
             data['rnd_typ']='render'
             dataset.append(data)
         return dataset
 
-class OcclusionLineModImageDB(object):
+class OcclusionHomemadeImageDB(object):
     def __init__(self,cls_name):
         self.cls_name=cls_name
 
         # some dirs for processing
-        self.linemod_dir=cfg.OCCLUSION_LINEMOD
+        self.homemade_dir=cfg.OCCLUSION_LINEMOD
         self.rgb_dir='RGB-D/rgb_noseg'
         self.mask_dir='masks/{}'.format(cls_name)
-        self.rt_dir=os.path.join(self.linemod_dir,'poses/{}{}'.format(cls_name[0].upper(),cls_name[1:]))
+        self.rt_dir=os.path.join(self.homemade_dir,'poses/{}{}'.format(cls_name[0].upper(),cls_name[1:]))
 
-        self.real_pkl=os.path.join(self.linemod_dir,'posedb','{}_real.pkl'.format(cls_name))
+        self.real_pkl=os.path.join(self.homemade_dir,'posedb','{}_real.pkl'.format(cls_name))
         if os.path.exists(self.real_pkl):
             # read cached
             self.real_set=read_pickle(self.real_pkl)
@@ -559,7 +560,7 @@ class OcclusionLineModImageDB(object):
 
     def get_train_test_split(self):
         test_fns=[]
-        with open(os.path.join(cfg.LINEMOD,self.cls_name,'test_occlusion.txt'),'r') as f:
+        with open(os.path.join(cfg.HOMEMADE,self.cls_name,'test_occlusion.txt'),'r') as f:
             for line in f.readlines():
                 test_id=int(line.strip().split('/')[-1].split('.')[0])
                 test_fns.append('color_{:05}.png'.format(test_id))
@@ -575,11 +576,11 @@ class OcclusionLineModImageDB(object):
     def collect_real_set_info(self):
         database=[]
         projector=Projector()
-        modeldb=LineModModelDB()
+        modeldb=HomemadeModelDB()
 
         transformer=PoseTransformer(class_type=self.cls_name)
 
-        img_num=len(os.listdir(os.path.join(self.linemod_dir,self.rgb_dir)))
+        img_num=len(os.listdir(os.path.join(self.homemade_dir,self.rgb_dir)))
         print(img_num)
         for k in range(img_num):
             data={}
@@ -593,12 +594,12 @@ class OcclusionLineModImageDB(object):
             data['RT']=transformer.occlusion_pose_to_blender_pose(pose)
             data['cls_typ']=self.cls_name
             data['rnd_typ']='real'
-            data['corners']=projector.project(modeldb.get_corners_3d(self.cls_name),data['RT'],'linemod')
-            data['farthest']=projector.project(modeldb.get_farthest_3d(self.cls_name),data['RT'],'linemod')
+            data['corners']=projector.project(modeldb.get_corners_3d(self.cls_name),data['RT'],'homemade')
+            data['farthest']=projector.project(modeldb.get_farthest_3d(self.cls_name),data['RT'],'homemade')
             for num in [4,12,16,20]:
-                data['farthest{}'.format(num)]=projector.project(modeldb.get_farthest_3d(self.cls_name,num),data['RT'],'linemod')
-            data['center']=projector.project(modeldb.get_centers_3d(self.cls_name)[None,:],data['RT'],'linemod')
-            data['small_bbox'] = projector.project(modeldb.get_small_bbox(self.cls_name), data['RT'], 'linemod')
+                data['farthest{}'.format(num)]=projector.project(modeldb.get_farthest_3d(self.cls_name,num),data['RT'],'homemade')
+            data['center']=projector.project(modeldb.get_centers_3d(self.cls_name)[None,:],data['RT'],'homemade')
+            data['small_bbox'] = projector.project(modeldb.get_small_bbox(self.cls_name), data['RT'], 'homemade')
             axis_direct=np.concatenate([np.identity(3), np.zeros([3, 1])], 1).astype(np.float32)
             data['van_pts']=projector.project_h(axis_direct, data['RT'], 'blender')
             database.append(data)
@@ -607,7 +608,7 @@ class OcclusionLineModImageDB(object):
         return database
 
     def get_test_val_split(self):
-        with open(os.path.join(self.linemod_dir,'{}_val.txt'.format(self.cls_name)),'r') as f:
+        with open(os.path.join(self.homemade_dir,'{}_val.txt'.format(self.cls_name)),'r') as f:
             val_fns=[line.strip() for line in f.readlines()]
 
         for data in self.real_set:
@@ -629,21 +630,21 @@ class OcclusionLineModImageDB(object):
 
     @staticmethod
     def split_val_set():
-        image_dbs=[OcclusionLineModImageDB(cls) for cls in cfg.occ_linemod_cls_names]
+        image_dbs=[OcclusionHomemadeImageDB(cls) for cls in cfg.occ_homemade_cls_names]
         for db in image_dbs:
             random.shuffle(db.real_set)
-            with open(os.path.join(db.linemod_dir,'{}_val.txt'.format(db.cls_name)),'w') as f:
+            with open(os.path.join(db.homemade_dir,'{}_val.txt'.format(db.cls_name)),'w') as f:
                 for k in range(len(db.real_set)//2):
                     f.write(db.real_set[k]['rgb_pth']+'\n')
 
-class TruncatedLineModImageDB(object):
+class TruncatedHomemadeImageDB(object):
     def __init__(self,cls_name):
         self.cls_name=cls_name
 
         # some dirs for processing
-        self.linemod_dir=cfg.LINEMOD
+        self.homemade_dir=cfg.HOMEMADE
 
-        self.pkl=os.path.join(self.linemod_dir,'posedb','{}_truncated.pkl'.format(cls_name))
+        self.pkl=os.path.join(self.homemade_dir,'posedb','{}_truncated.pkl'.format(cls_name))
         if os.path.exists(self.pkl):
             # read cached
             self.set=read_pickle(self.pkl)
@@ -654,15 +655,15 @@ class TruncatedLineModImageDB(object):
     def collect_truncated_set_info(self):
         database=[]
         projector=Projector()
-        modeldb=LineModModelDB()
+        modeldb=HomemadeModelDB()
 
-        img_num=len(os.listdir(os.path.join(self.linemod_dir,self.cls_name,'JPEGImages')))
+        img_num=len(os.listdir(os.path.join(self.homemade_dir,self.cls_name,'JPEGImages')))
         for k in range(img_num):
             data={}
             data['rgb_pth']=os.path.join('truncated',self.cls_name,'{:06}_rgb.jpg'.format(k))
             data['dpt_pth']=os.path.join('truncated',self.cls_name,'{:04}_msk.png'.format(k))
 
-            pose,K=read_pickle(os.path.join(self.linemod_dir,'truncated',self.cls_name,'{:06}_info.pkl'.format(k)))
+            pose,K=read_pickle(os.path.join(self.homemade_dir,'truncated',self.cls_name,'{:06}_info.pkl'.format(k)))
             data['RT']=pose
             data['cls_typ']=self.cls_name
             data['rnd_typ']='truncated'
@@ -680,7 +681,7 @@ class TruncatedLineModImageDB(object):
         save_pickle(database,self.pkl)
         return database
 
-class OcclusionLineModDB(LineModModelDB):
+class OcclusionHomemadeDB(HomemadeModelDB):
     class_type_to_number = {
         'ape': '001',
         'can': '004',
@@ -696,7 +697,7 @@ class OcclusionLineModDB(LineModModelDB):
     blender_models = {}
 
     def __init__(self):
-        super(OcclusionLineModDB, self).__init__()
+        super(OcclusionHomemadeDB, self).__init__()
         from lib.utils.render_utils import OpenGLRenderer
         self.class_type = None
         self.xyz_pattern = os.path.join(cfg.OCCLUSION_LINEMOD,'models/{}/{}.xyz')
@@ -799,7 +800,7 @@ class OcclusionLineModDB(LineModModelDB):
             pose = self.read_blender_pose(index)
             if len(pose) == 0:
                 return
-            depth = self.opengl_renderer.render(class_type, pose, camera_type='linemod')
+            depth = self.opengl_renderer.render(class_type, pose, camera_type='homemade')
             col_row = np.argwhere(depth != 0)[:, [1, 0]]
             depth = depth[col_row[:, 1], col_row[:, 0]]
             pixel_depth = depth_map[col_row[:, 1], col_row[:, 0]]
@@ -858,11 +859,11 @@ class OcclusionLineModDB(LineModModelDB):
         for i in range(num_masks):
             self.get_mask(i)
 
-class OcclusionLineModDBSyn(OcclusionLineModDB):
+class OcclusionHomemadeDBSyn(OcclusionHomemadeDB):
     def __init__(self):
-        super(OcclusionLineModDBSyn, self).__init__()
-        self.pose_pattern = os.path.join(cfg.LINEMOD, 'renders/all_objects/{}_{}_RT.pkl')
-        self.mask_dir_pattern = os.path.join(cfg.LINEMOD, 'renders/all_objects')
+        super(OcclusionHomemadeDBSyn, self).__init__()
+        self.pose_pattern = os.path.join(cfg.HOMEMADE, 'renders/all_objects/{}_{}_RT.pkl')
+        self.mask_dir_pattern = os.path.join(cfg.HOMEMADE, 'renders/all_objects')
         self.mask_pattern = os.path.join(self.mask_dir_pattern, '{}_{}_mask.png')
 
     def read_blender_pose(self, index):
@@ -960,7 +961,7 @@ class PrinterModelDB(object):
         self.mask_pattern=os.path.join(self.image_dir,'{:06}_mask.png')
 
         self.printer_model_pts= np.loadtxt(os.path.join(self.root_dir, 'point_cloud.txt'))[:, :3]
-        self.model_pts=LineModModelDB().get_ply_model(cls_name)
+        self.model_pts=HomemadeModelDB().get_ply_model(cls_name)
         self.poses=self.parse_poses()
         self.image_num=len(self.poses)
         self.aligned_poses=self.align_poses()
@@ -1031,8 +1032,9 @@ class PrinterModelDB(object):
 
 
 if __name__=="__main__":
-    LineModModelDB.compute_farthest_surface_point_3d()
-    LineModModelDB.compute_farthest_surface_point_3d_num(4)
-    LineModModelDB.compute_farthest_surface_point_3d_num(12)
-    LineModModelDB.compute_farthest_surface_point_3d_num(16)
-    LineModModelDB.compute_farthest_surface_point_3d_num(20)
+    HomemadeModelDB.compute_farthest_surface_point_3d()
+    HomemadeModelDB.compute_farthest_surface_point_3d_num(4)
+    HomemadeModelDB.compute_farthest_surface_point_3d_num(12)
+    HomemadeModelDB.compute_farthest_surface_point_3d_num(16)
+    HomemadeModelDB.compute_farthest_surface_point_3d_num(20)
+

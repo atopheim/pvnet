@@ -235,7 +235,6 @@ class PoseTransformer(object):
 
         return pose
 
-
 class Projector(object):
     intrinsic_matrix = {
         'linemod': np.array([[572.4114, 0., 325.2611],
@@ -243,6 +242,9 @@ class Projector(object):
                               [0., 0., 1.]]),
         'blender': np.array([[700.,    0.,  320.],
                              [0.,  700.,  240.],
+                             [0.,    0.,    1.]]),
+        'homemade': np.array([[771.2,    0.,  500.],
+                             [0.,  771.2,  500.],
                              [0.,    0.,    1.]]),
         'pascal': np.asarray([[-3000.0, 0.0, 0.0],
                               [0.0, 3000.0, 0.0],
@@ -257,7 +259,6 @@ class Projector(object):
 
     def project_h(self,pts_3dh,RT,K_type):
         '''
-
         :param pts_3dh: [n,4]
         :param RT:      [3,4]
         :param K_type:
@@ -268,7 +269,6 @@ class Projector(object):
 
     def project_pascal(self,pts_3d,RT,principle):
         '''
-
         :param pts_3d:    [n,3]
         :param principle: [2,2]
         :return:

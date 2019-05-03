@@ -35,11 +35,11 @@ cfg.LINEMOD = os.path.join(cfg.DATA_DIR, 'LINEMOD')
 cfg.LINEMOD_ORIG = os.path.join(cfg.DATA_DIR, 'LINEMOD_ORIG')
 cfg.OCCLUSION_LINEMOD = os.path.join(cfg.DATA_DIR, 'OCCLUSION_LINEMOD')
 cfg.YCB = os.path.join(cfg.DATA_DIR, 'YCB')
-
+cfg.HOMEMADE = os.path.join(cfg.DATA_DIR, 'HOMEMADE')
 """
 Rendering setting
 """
-cfg.BLENDER_PATH = '/home/pengsida/Software/blender-2.79a-linux-glibc219-x86_64/blender'
+cfg.BLENDER_PATH = '/usr/bin/blender'
 cfg.NUM_SYN = 35000
 # cfg.NUM_SYN = 10000
 cfg.WIDTH = 640
@@ -61,14 +61,21 @@ cfg.render_K=np.array([[700., 0., 320.],
 cfg.linemod_K=np.array([[572.41140,0.       ,325.26110],
                         [0.       ,573.57043,242.04899],
                         [0.       ,0.       ,1.       ]],np.float32)
-
+cfg.homemade_K=np.array([[771.2   ,0.0      ,960.0],
+                        [0.0       ,771.2   ,540.0],
+                        [0.0      ,0.0      ,1.0      ]],np.float32)
 cfg.linemod_cls_names=['ape','cam','cat','duck','glue','iron','phone',
                        'benchvise','can','driller','eggbox','holepuncher','lamp']
+cfg.homemade_cls_names=['intake','filter-volvo-BP', 'filter-volvo-LL','filter-renault-BP','filter-renault-BP','pipe-U','pipe-J','ladderframe']
+
 cfg.occ_linemod_cls_names=['ape','can','cat','driller','duck','eggbox','glue','holepuncher']
+cfg.occ_homemade_cls_names=['notyet']
+
 cfg.linemod_plane=['can']
 
-cfg.symmetry_linemod_cls_names=['glue','eggbox']
 
+cfg.symmetry_linemod_cls_names=['glue','eggbox']
+cfg.symmetry_homemade_cls_names=['filter-volvo-BP', 'filter-volvo-LL','filter-renault-BP','filter-renault-BP','pipe-U','ladderframe']
 
 '''
 pascal 3d +
