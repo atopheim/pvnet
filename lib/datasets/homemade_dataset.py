@@ -21,7 +21,6 @@ import json
 
 from lib.utils.draw_utils import visualize_bounding_box, visualize_vanishing_points, visualize_points, imagenet_to_uint8
 
-
 def read_rgb(rgb_path):
     img = Image.open(rgb_path).convert('RGB')
     img = np.array(img)
@@ -168,11 +167,11 @@ class VotingType:
 
         return points_3d
 
-with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'homemade_cfg.json'),'r') as f:
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'default_homemade_cfg.json'),'r') as f:
     default_homemade_cfg=json.load(f)
 
 class HomemadeDataset(Dataset):
-    def __init__(self, imagedb, data_prefix=cfg.HOMEMADE, vote_type=VotingType.BB8,
+    def __init__(self, imagedb, data_prefix=cfg.HOMEMADE, vote_type=VotingType.Farthest,
                  augment=False, cfg=default_homemade_cfg, background_mask_out=False, use_intrinsic=False,
                  use_motion=False):
         self.imagedb=imagedb
@@ -181,7 +180,7 @@ class HomemadeDataset(Dataset):
         self.use_intrinsic=use_intrinsic
         self.use_motion=use_motion
         self.cfg=cfg
-
+        
         self.img_transforms=transforms.Compose([
             transforms.ColorJitter(self.cfg['brightness'],self.cfg['contrast'],self.cfg['saturation'],self.cfg['hue']),
             transforms.ToTensor(), # if image.dtype is np.uint8, then it will be divided by 255
@@ -199,10 +198,11 @@ class HomemadeDataset(Dataset):
 
     def __getitem__(self, index_tuple):
         index, height, width = index_tuple
-
+        #print("index, height, width",index, height, width)
         rgb_path = os.path.join(self.data_prefix,self.imagedb[index]['rgb_pth'])
+        #print("RGB path: ",rgb_path)
         mask_path = os.path.join(self.data_prefix,self.imagedb[index]['dpt_pth'])
-
+        #print("Mask path: ",mask_path)
         pose = self.imagedb[index]['RT'].copy()
         rgb = read_rgb_np(rgb_path)
         mask = read_mask_np(mask_path)
@@ -252,6 +252,7 @@ class HomemadeDataset(Dataset):
         return len(self.imagedb)
 
     def augmentation(self, img, mask, hcoords, height, width):
+        
         foreground=np.sum(mask)
         # randomly mask out to add occlusion
         if self.cfg['mask'] and np.random.random() < 0.5:

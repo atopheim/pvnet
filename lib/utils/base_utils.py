@@ -12,28 +12,27 @@ from transforms3d.euler import mat2euler
 
 import pickle
 
-
 def read_pickle(pkl_path):
     with open(pkl_path, 'rb') as f:
         return pickle.load(f)
-
 
 def save_pickle(data, pkl_path):
     os.system('mkdir -p {}'.format(os.path.dirname(pkl_path)))
     with open(pkl_path, 'wb') as f:
         pickle.dump(data, f)
 
-
 def read_pose(rot_path, tra_path):
     rot = np.loadtxt(rot_path, skiprows=1)
     tra = np.loadtxt(tra_path, skiprows=1) / 100.
     return np.concatenate([rot, np.reshape(tra, newshape=[3, 1])], axis=-1)
 
-
 class ModelAligner(object):
     rotation_transform = np.array([[1., 0., 0.],
                                    [0., -1., 0.],
                                    [0., 0., -1.]])
+    #rotation_transform = np.array([[1., 0., 0.],
+    #                                [0., 1., 0.],
+    #                                [0., 0., 1.]])
     translation_transforms = {
         # 'cat': np.array([-0.00577495, -0.01259045, -0.04062323])
     }
@@ -41,20 +40,26 @@ class ModelAligner(object):
         'linemod': np.array([[572.4114, 0., 325.2611],
                               [0., 573.57043, 242.04899],
                               [0., 0., 1.]]),
-        # 'blender': np.array([[280.0, 0.0, 128.0],
+        #'blender': np.array([[280.0, 0.0, 128.0],
         #                      [0.0, 280.0, 128.0],
         #                      [0.0, 0.0, 1.0]]),
         'blender': np.array([[700.,    0.,  320.],
                              [0.,  700.,  240.],
-                             [0.,    0.,    1.]])
+                             [0.,    0.,    1.]]),
+        'logitech' : np.array([[542.9039, 0., 323.9369],
+                              [0., 529.055241, 239.57233],
+                              [0., 0., 1.]])
+        #'homemade': np.array([[771.2,   0.,   500.],
+        #                    [0.,     771.2,   500.],
+        #                    [0.,       0.,   1.0]])
     }
 
-    def __init__(self, class_type='cat'):
+    def __init__(self, class_type='intake'):
         self.class_type = class_type
-        self.blender_model_path = os.path.join(cfg.LINEMOD,'{}/{}.ply'.format(class_type, class_type))
-        self.orig_model_path = os.path.join(cfg.LINEMOD_ORIG,'{}/mesh.ply'.format(class_type))
-        self.orig_old_model_path = os.path.join(cfg.LINEMOD_ORIG,'{}/OLDmesh.ply'.format(class_type))
-        self.transform_dat_path = os.path.join(cfg.LINEMOD_ORIG,'{}/transform.dat'.format(class_type))
+        self.blender_model_path = os.path.join(cfg.HOMEMADE,'{}/{}.ply'.format(class_type, class_type))
+        self.orig_model_path = os.path.join(cfg.HOMEMADE,'{}/{}.ply'.format(class_type, class_type))
+        self.orig_old_model_path = os.path.join(cfg.HOMEMADE,'{}/{}.ply'.format(class_type, class_type))
+        self.transform_dat_path = os.path.join(cfg.HOMEMADE,'{}/transform.dat'.format(class_type))
 
         self.R_p2w,self.t_p2w,self.s_p2w=self.setup_p2w_transform()
 
@@ -134,9 +139,9 @@ class ModelAligner(object):
 
     def validate(self, idx):
         model = self.load_ply_model(self.blender_model_path)
-        pose = read_pickle('/home/pengsida/Datasets/LINEMOD/renders/{}/{}_RT.pkl'.format(self.class_type, idx))['RT']
-        model_2d = self.project_model(model, pose, 'blender')
-        img = np.array(Image.open('/home/pengsida/Datasets/LINEMOD/renders/{}/{}.jpg'.format(self.class_type, idx)))
+        pose = read_pickle('/home/volvomlp2/python-envs/pvnet/data/HOMEMADE/renders/{}/{}_RT.pkl'.format(self.class_type, idx))['RT']
+        model_2d = self.project_model(model, pose, 'homemade')
+        img = np.array(Image.open('/home/volvomlp2/python-envs/pvnet/data/HOMEMADE/renders/{}/{}.jpg'.format(self.class_type, idx)))
 
         import matplotlib.pyplot as plt
         plt.imshow(img)
@@ -148,24 +153,27 @@ class PoseTransformer(object):
     rotation_transform = np.array([[1., 0., 0.],
                                    [0., -1., 0.],
                                    [0., 0., -1.]])
+    #rotation_transform = np.array([[1., 0., 0.],
+    #                               [0., 1., 0.],
+    #                               [0., 0., 1.]])
     translation_transforms = {}
     class_type_to_number = {
-        'ape': '001',
-        'can': '004',
+        'intake': '001',
+        'filter_v': '004',
         'cat': '005',
         'driller': '006',
         'duck': '007',
-        'eggbox': '008',
-        'glue': '009',
+        'ladderframe': '008',
+        'filter_r': '009',
         'holepuncher': '010'
     }
     blender_models={}
 
     def __init__(self, class_type):
         self.class_type = class_type
-        self.blender_model_path = os.path.join(cfg.LINEMOD,'{}/{}.ply'.format(class_type, class_type))
-        self.orig_model_path = os.path.join(cfg.LINEMOD_ORIG,'{}/mesh.ply'.format(class_type))
-        self.xyz_pattern = os.path.join(cfg.OCCLUSION_LINEMOD,'models/{}/{}.xyz')
+        self.blender_model_path = os.path.join(cfg.HOMEMADE,'{}/{}.ply'.format(class_type, class_type))
+        self.orig_model_path = os.path.join(cfg.HOMEMADE,'{}/{}.ply'.format(class_type,class_type))
+        self.xyz_pattern = os.path.join(cfg.HOMEMADE,'{}/dense_pts.txt')
         self.model_aligner = ModelAligner(class_type)
 
     def orig_pose_to_blender_pose(self, pose):
@@ -248,7 +256,16 @@ class Projector(object):
                              [0.,    0.,    1.]]),
         'pascal': np.asarray([[-3000.0, 0.0, 0.0],
                               [0.0, 3000.0, 0.0],
-                              [0.0,    0.0, 1.0]])
+                              [0.0,    0.0, 1.0]]),
+        'honor': np.array([[3115.8, 0., 1928.7], #HUAWEI HONOR8
+                              [0., 3109.8, 1477.6],
+                              [0., 0., 1.]]),
+        'homemade_scale': np.array([[1500.85714, 0., 500], #For detecting scaled hm_objects
+                              [0., 1500.85714, 500],
+                              [0., 0., 1.]]),
+        'logitech': np.array([[542.9039, 0., 323.9369],
+                              [0., 529.055241, 239.57233],
+                              [0., 0., 1.]])
     }
 
     def project(self,pts_3d,RT,K_type):
@@ -302,7 +319,6 @@ def randomly_read_background():
         fns=glob(os.path.join(background_dir,'*.jpg'))+glob(os.path.join(background_dir,'*.png'))
         save_pickle(fns,os.path.join(cache_dir,'background_info.pkl'))
     return imread(fns[np.random.randint(0,len(fns))])
-
 
 
 def vertex_layer_reshape(vertex):

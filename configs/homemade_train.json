@@ -14,9 +14,9 @@
 "finetune":false,
 "epoch_num":200,
 
-"use_real_train":true,
+"use_real_train":false,
 "use_multi_syn":false,
-"use_fuse":true,
+"use_fuse":false,
 "use_plane":false,
 "use_render_all":true,
 "use_render_orig":false,
@@ -41,11 +41,11 @@
     "max_mask":0.4,
   
     "rotation":true,
-    "rot_ang_min":-30,
-    "rot_ang_max":30,
+    "rot_ang_min":90,
+    "rot_ang_max":90,
   
     "crop":true,
-    "use_old":true,
+    "use_old":false,
     "resize_ratio_min":0.8,
     "resize_ratio_max":1.2,
   
@@ -73,6 +73,6 @@
   
     "ignore_fuse_ms_vertex":false,
   
-    "use_mask_out":false
+    "use_mask_out":true
   }
 }

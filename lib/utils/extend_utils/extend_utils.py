@@ -244,16 +244,16 @@ if __name__=="__main__":
     from lib.utils.evaluation_utils import pnp
     import random
 
-    image_db = HomemadeImageDB('intake', has_ro_set=False, has_ra_set=False, has_plane_set=False, has_render_set=False,
+    image_db = HomemadeImageDB(args.homemade_cls, has_ro_set=False, has_ra_set=False, has_plane_set=False, has_render_set=False,
                               has_ms_set=False,has_fuse_set=False)
     random.shuffle(image_db.real_set)
-    dataset = HomemadeDataset(image_db.real_set[:5], data_prefix=image_db.linemod_dir,
+    dataset = HomemadeDataset(image_db.real_set[:5], data_prefix=image_db.homemade_dir,
                                     vote_type=VotingType.Extreme, augment=False)
     sampler = RandomSampler(dataset)
     batch_sampler = ImageSizeBatchSampler(sampler, 5, False)
     loader = DataLoader(dataset, batch_sampler=batch_sampler, num_workers=8)
     modeldb=HomemadeModelDB()
-    camera_matrix=Projector().intrinsic_matrix['linemod'].astype(np.float32)
+    camera_matrix=Projector().intrinsic_matrix['homemade'].astype(np.float32)
     for i, data in enumerate(loader):
         rgb, mask, vertex, vertex_weight, pose, gt_corners = data
         pts2d=gt_corners[0].numpy()[:,:2].astype(np.float32)

@@ -4,11 +4,43 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from transforms3d.euler import euler2mat
 from skimage.io import imsave
+import PIL
+
+ 
+def fig2data ( fig ):
+    """
+    brief Convert a Matplotlib figure to a 4D numpy array with RGBA channels and return it
+    param fig a matplotlib figure
+    return a numpy 3D array of RGBA values
+    """
+    # draw the renderer
+    fig.canvas.draw ( )
+ 
+    # Get the RGBA buffer from the figure
+    w,h = fig.canvas.get_width_height()
+    buf = np.fromstring ( fig.canvas.tostring_argb(), dtype=np.uint8 )
+    buf.shape = ( w, h,4 )
+ 
+    # canvas.tostring_argb give pixmap in ARGB mode. Roll the ALPHA channel to have it in RGBA mode
+    buf = np.roll ( buf, 3, axis = 2 )
+    return buf
 
 
-def visualize_bounding_box(rgb, corners_pred, corners_targets=None, centers_pred=None, centers_targets=None, save=False, save_fn=None):
+ 
+def fig2img ( fig ):
+    """
+    @brief Convert a Matplotlib figure to a PIL Image in RGBA format and return it
+    @param fig a matplotlib figure
+    @return a Python Imaging Library ( PIL ) image
+    """
+    # put the figure pixmap into a numpy array
+    buf = fig2data ( fig )
+    w, h, d = buf.shape
+    return Image.fromstring( "RGBA", ( w ,h ), buf.tostring( ) )
+
+
+def visualize_bounding_box(rgb, corners_pred, corners_targets=None, centers_pred=None, centers_targets=None, save=False, save_fn=None,count = 0):
     '''
-
     :param rgb:             torch tensor with size [b,3,h,w] or numpy array with size [b,h,w,3]
     :param corners_pred:    [b,1,8,2]
     :param corners_targets: [b,1,8,2] or None
@@ -42,12 +74,11 @@ def visualize_bounding_box(rgb, corners_pred, corners_targets=None, centers_pred
         if not save:
             plt.show()
         else:
-            plt.savefig(save_fn.format(idx))
+            plt.savefig('temp{}.png'.format(count))#save_fn.format(idx))
         plt.close()
 
 def visualize_mask(mask_pred,mask_gt, save=False, save_fn=None):
     '''
-
     :param mask_pred:   [b,h,w]
     :param mask_gt:     [b,h,w]
     :return:

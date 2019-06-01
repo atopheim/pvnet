@@ -5,7 +5,7 @@ import sys
 sys.path.append('.')
 
 from lib.utils.config import cfg
-from lib.utils.data_utils import LineModModelDB, Projector
+from lib.utils.data_utils_linemod import LineModModelDB, Projector
 from plyfile import PlyData
 import numpy as np
 import cv2

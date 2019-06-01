@@ -8,7 +8,6 @@ parser.add_argument('--rec_name', default='resnet', type=str)
 parser.add_argument('--net', action='store', dest='net', type=str)
 parser.add_argument('--type', action='store', dest='type', type=str)
 
-#parser.add_argument('--cfg_file', type=str, default='configs/linemod_train.json')
 parser.add_argument('--cfg_file', type=str, default='configs/homemade_train.json')
 parser.add_argument('--linemod_cls', type=str, default='cat')
 parser.add_argument('--homemade_cls', type=str, default='intake')
@@ -64,5 +63,9 @@ parser.add_argument('--ycb_single_idx',type=int,default=1)
 parser.add_argument('--sequence_id', type=int, default=0)
 
 parser.add_argument('--resize', dest='resize', action='store_true', default=False)
+
+# evaluation
+parser.add_argument('--input',dest='input',default='cam',help=" --type cam or --type video --media '/path/to/video/video.mov'")
+parser.add_argument('--media',dest='media')
 
 args = parser.parse_args()
