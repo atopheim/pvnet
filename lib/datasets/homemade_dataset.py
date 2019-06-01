@@ -21,7 +21,10 @@ import json
 
 from lib.utils.draw_utils import visualize_bounding_box, visualize_vanishing_points, visualize_points, imagenet_to_uint8
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 2a470f5ac1250bcc075a41035b5cfe8fa5b48685
 def read_rgb(rgb_path):
     img = Image.open(rgb_path).convert('RGB')
     img = np.array(img)
@@ -168,11 +171,19 @@ class VotingType:
 
         return points_3d
 
+<<<<<<< HEAD
 with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'homemade_cfg.json'),'r') as f:
     default_homemade_cfg=json.load(f)
 
 class HomemadeDataset(Dataset):
     def __init__(self, imagedb, data_prefix=cfg.HOMEMADE, vote_type=VotingType.BB8,
+=======
+with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'default_homemade_cfg.json'),'r') as f:
+    default_homemade_cfg=json.load(f)
+
+class HomemadeDataset(Dataset):
+    def __init__(self, imagedb, data_prefix=cfg.HOMEMADE, vote_type=VotingType.Farthest,
+>>>>>>> 2a470f5ac1250bcc075a41035b5cfe8fa5b48685
                  augment=False, cfg=default_homemade_cfg, background_mask_out=False, use_intrinsic=False,
                  use_motion=False):
         self.imagedb=imagedb
@@ -181,7 +192,11 @@ class HomemadeDataset(Dataset):
         self.use_intrinsic=use_intrinsic
         self.use_motion=use_motion
         self.cfg=cfg
+<<<<<<< HEAD
 
+=======
+        
+>>>>>>> 2a470f5ac1250bcc075a41035b5cfe8fa5b48685
         self.img_transforms=transforms.Compose([
             transforms.ColorJitter(self.cfg['brightness'],self.cfg['contrast'],self.cfg['saturation'],self.cfg['hue']),
             transforms.ToTensor(), # if image.dtype is np.uint8, then it will be divided by 255
@@ -199,10 +214,18 @@ class HomemadeDataset(Dataset):
 
     def __getitem__(self, index_tuple):
         index, height, width = index_tuple
+<<<<<<< HEAD
 
         rgb_path = os.path.join(self.data_prefix,self.imagedb[index]['rgb_pth'])
         mask_path = os.path.join(self.data_prefix,self.imagedb[index]['dpt_pth'])
 
+=======
+        #print("index, height, width",index, height, width)
+        rgb_path = os.path.join(self.data_prefix,self.imagedb[index]['rgb_pth'])
+        #print("RGB path: ",rgb_path)
+        mask_path = os.path.join(self.data_prefix,self.imagedb[index]['dpt_pth'])
+        #print("Mask path: ",mask_path)
+>>>>>>> 2a470f5ac1250bcc075a41035b5cfe8fa5b48685
         pose = self.imagedb[index]['RT'].copy()
         rgb = read_rgb_np(rgb_path)
         mask = read_mask_np(mask_path)
@@ -252,6 +275,10 @@ class HomemadeDataset(Dataset):
         return len(self.imagedb)
 
     def augmentation(self, img, mask, hcoords, height, width):
+<<<<<<< HEAD
+=======
+        
+>>>>>>> 2a470f5ac1250bcc075a41035b5cfe8fa5b48685
         foreground=np.sum(mask)
         # randomly mask out to add occlusion
         if self.cfg['mask'] and np.random.random() < 0.5:

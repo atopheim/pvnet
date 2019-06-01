@@ -3,7 +3,6 @@ import torch
 from torch.nn import functional as F
 from lib.networks.resnet import resnet18, resnet50, resnet34
 
-
 class Resnet18_8s(nn.Module):
     def __init__(self, ver_dim, seg_dim, fcdim=256, s8dim=128, s4dim=64, s2dim=32, raw_dim=32):
         super(Resnet18_8s, self).__init__()
@@ -329,7 +328,6 @@ class Resnet18_8s_detector_v2(nn.Module):
         x4s = self.base_detector.resnet18_8s.layer1(x)
         x8s = self.base_detector.resnet18_8s.layer2(x4s)
         return self.out_conv(x8s)
-
 
 if __name__=="__main__":
     # test varying input size

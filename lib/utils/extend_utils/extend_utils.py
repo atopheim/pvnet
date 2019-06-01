@@ -244,16 +244,27 @@ if __name__=="__main__":
     from lib.utils.evaluation_utils import pnp
     import random
 
+<<<<<<< HEAD
     image_db = HomemadeImageDB('intake', has_ro_set=False, has_ra_set=False, has_plane_set=False, has_render_set=False,
                               has_ms_set=False,has_fuse_set=False)
     random.shuffle(image_db.real_set)
     dataset = HomemadeDataset(image_db.real_set[:5], data_prefix=image_db.linemod_dir,
+=======
+    image_db = HomemadeImageDB(args.homemade_cls, has_ro_set=False, has_ra_set=False, has_plane_set=False, has_render_set=False,
+                              has_ms_set=False,has_fuse_set=False)
+    random.shuffle(image_db.real_set)
+    dataset = HomemadeDataset(image_db.real_set[:5], data_prefix=image_db.homemade_dir,
+>>>>>>> 2a470f5ac1250bcc075a41035b5cfe8fa5b48685
                                     vote_type=VotingType.Extreme, augment=False)
     sampler = RandomSampler(dataset)
     batch_sampler = ImageSizeBatchSampler(sampler, 5, False)
     loader = DataLoader(dataset, batch_sampler=batch_sampler, num_workers=8)
     modeldb=HomemadeModelDB()
+<<<<<<< HEAD
     camera_matrix=Projector().intrinsic_matrix['linemod'].astype(np.float32)
+=======
+    camera_matrix=Projector().intrinsic_matrix['homemade'].astype(np.float32)
+>>>>>>> 2a470f5ac1250bcc075a41035b5cfe8fa5b48685
     for i, data in enumerate(loader):
         rgb, mask, vertex, vertex_weight, pose, gt_corners = data
         pts2d=gt_corners[0].numpy()[:,:2].astype(np.float32)

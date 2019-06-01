@@ -7,7 +7,6 @@ import torchvision.utils as vutils
 import numpy as np
 
 
-
 class History:
 
     def load_dict(self, *args):

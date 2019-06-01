@@ -14,9 +14,15 @@
 "finetune":false,
 "epoch_num":200,
 
+<<<<<<< HEAD
 "use_real_train":true,
 "use_multi_syn":false,
 "use_fuse":true,
+=======
+"use_real_train":false,
+"use_multi_syn":false,
+"use_fuse":false,
+>>>>>>> 2a470f5ac1250bcc075a41035b5cfe8fa5b48685
 "use_plane":false,
 "use_render_all":true,
 "use_render_orig":false,
@@ -41,11 +47,19 @@
     "max_mask":0.4,
   
     "rotation":true,
+<<<<<<< HEAD
     "rot_ang_min":-30,
     "rot_ang_max":30,
   
     "crop":true,
     "use_old":true,
+=======
+    "rot_ang_min":90,
+    "rot_ang_max":90,
+  
+    "crop":true,
+    "use_old":false,
+>>>>>>> 2a470f5ac1250bcc075a41035b5cfe8fa5b48685
     "resize_ratio_min":0.8,
     "resize_ratio_max":1.2,
   
@@ -73,6 +87,10 @@
   
     "ignore_fuse_ms_vertex":false,
   
+<<<<<<< HEAD
     "use_mask_out":false
+=======
+    "use_mask_out":true
+>>>>>>> 2a470f5ac1250bcc075a41035b5cfe8fa5b48685
   }
 }
