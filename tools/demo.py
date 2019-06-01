@@ -33,7 +33,6 @@ train_cfg['model_name'] = '{}_{}'.format(args.linemod_cls, train_cfg['model_name
 
 vote_num = 9
 
-
 class NetWrapper(nn.Module):
     def __init__(self, net):
         super(NetWrapper, self).__init__()
@@ -48,7 +47,6 @@ class NetWrapper(nn.Module):
         precision, recall = compute_precision_recall(seg_pred, mask)
         return seg_pred, vertex_pred, loss_seg, loss_vertex, precision, recall
 
-
 class EvalWrapper(nn.Module):
     def forward(self, seg_pred, vertex_pred, use_argmax=True):
         vertex_pred = vertex_pred.permute(0, 2, 3, 1)
@@ -59,7 +57,6 @@ class EvalWrapper(nn.Module):
         else:
             mask = seg_pred
         return ransac_voting_layer_v3(mask, vertex_pred, 512, inlier_thresh=0.99)
-
 
 def compute_vertex(mask, points_2d):
     num_keypoints = points_2d.shape[0]
@@ -75,7 +72,6 @@ def compute_vertex(mask, points_2d):
     vertex_out = np.zeros([h, w, m, 2], np.float32)
     vertex_out[xy[:, 1], xy[:, 0]] = vertex
     return np.reshape(vertex_out, [h, w, m * 2])
-
 
 def read_data():
     import torchvision.transforms as transforms
@@ -108,7 +104,6 @@ def read_data():
 
     return data, points_3d, bb8_3d
 
-
 def demo():
     net = Resnet18_8s(ver_dim=vote_num * 2, seg_dim=2)
     net = NetWrapper(net).cuda()
@@ -118,11 +113,13 @@ def demo():
     model_dir = os.path.join(cfg.MODEL_DIR, "cat_demo")
     load_model(net.module.net, optimizer, model_dir, args.load_epoch)
     data, points_3d, bb8_3d = read_data()
+    print("pnts_3d",points_3d)
     image, mask, vertex, vertex_weights, pose, corner_target = [d.unsqueeze(0).cuda() for d in data]
     seg_pred, vertex_pred, loss_seg, loss_vertex, precision, recall = net(image, mask, vertex, vertex_weights)
-
+    
     eval_net = DataParallel(EvalWrapper().cuda())
     corner_pred = eval_net(seg_pred, vertex_pred).cpu().detach().numpy()[0]
+    print("crnr",corner_pred)
     camera_matrix = np.array([[572.4114, 0., 325.2611],
                               [0., 573.57043, 242.04899],
                               [0., 0., 1.]])
@@ -133,7 +130,6 @@ def demo():
     bb8_2d_gt = projector.project(bb8_3d, pose[0].detach().cpu().numpy(), 'linemod')
     image = imagenet_to_uint8(image.detach().cpu().numpy())[0]
     visualize_bounding_box(image[None, ...], bb8_2d_pred[None, None, ...], bb8_2d_gt[None, None, ...])
-
 
 if __name__ == "__main__":
     demo()
